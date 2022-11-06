@@ -1,3 +1,6 @@
+#Author: 紀竺均
+#Student ID: 109550027
+#HW ID: hw1
 import pandas as pd
 import spacy
 from tqdm import trange
@@ -10,6 +13,9 @@ pd.set_option('display.width', None)
 data_path="dataset.csv"
 data=pd.read_csv(data_path,header=None,names=['編號','句子','主詞','動詞','受詞'])
 
+deptag = {"subj":["nsubj", "nsubjpass", "csubj",
+            "csubjpass", "agent", "expl"], "obj": ["dobj", "dative", "attr", "oprd"]}
+
 def get_sth(sen,label):
     list=[]
     sen=nlp(sen)
@@ -20,14 +26,25 @@ def get_sth(sen,label):
 
 
 #Try to improve this function
-def get_phrase(sen,head_idx,tag):
+def get_subj(sen,head_idx,tag):
     sen=nlp(sen)
-    for token in sen:
-        if tag in token.dep_ and token.head.i==head_idx:
+    sublist = []
+    for token in sen[0:head_idx]:
+        if token.dep_ in deptag[tag] and token.head.i==head_idx and token.pos_ != "DET" and not token.is_punct:
+            sublist.append(token)
+    return sublist
+
+def get_obj(sen,head_idx,tag):
+    sen=nlp(sen)
+    objlist = []
+    for token in sen[head_idx+1:]:
+        if token.dep_ in deptag[tag] and token.head.i==head_idx and not token.is_punct:
             subtree=list(token.subtree)
             start=subtree[0].i
             end=subtree[-1].i+1
             return sen[start:end]
+            objlist.append(token)
+    #return objlist
 
 def verb_idxs(sen):
     sen=nlp(sen)
@@ -39,6 +56,8 @@ def word_in_sen(s,sen):
         if word in sen:
             return True
     return False
+
+
 ans=pd.DataFrame(columns=["index","T/F"])
 
 
@@ -49,22 +68,27 @@ for row in trange(len(data)):
     v = []
     o = []
     for idx in verb_idxs(sen):
-        subj=get_phrase(sen,idx[0],'subj')
-        obj=get_phrase(sen,idx[0],'obj')
+        subj=get_subj(sen,idx[0],'subj')
+        obj=get_obj(sen,idx[0],'obj')
         verb = sen[idx[0]]
-        if subj != None:
-            s.append(subj.text)
+        if len(subj)!=0:
+            for su in subj:
+                s.append(su.text)
         if obj != None:
-            o.append(obj.text)
+            for ob in obj:
+                o.append(ob.text)
         if verb != None:
             v.append(verb.text)
 # Maybe consider the other Part-of-Speech?
 # Ex:
-    '''
+    
     if get_sth(sen,'AUX')!=None:
         for word in get_sth(sen,'AUX'):
             o.append(word)
-    '''
+    if get_sth(sen,'attr')!=None:
+        for word in get_sth(sen,'attr'):
+            o.append(word)
+    
 
     a = word_in_sen(s, str(data["主詞"][row]))
     b = word_in_sen(v, str(data["動詞"][row]))
