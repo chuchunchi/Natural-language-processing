@@ -16,6 +16,45 @@ data=pd.read_csv(data_path,header=None,names=['answ','句子','主詞','動詞',
 deptag = {"subj":["nsubj", "nsubjpass", "csubj",
             "csubjpass", "agent", "expl"], "obj": ["dobj", "dative", "attr", "oprd"]}
 
+def subj_deptree(verb):
+    head = verb.head
+    while head.head != head:
+        print(head)
+        head = head.head
+        if head.pos_ == "VERB":
+            subs = [t for t in head.lefts if t.dep_ in deptag["subj"]]
+            if len(subs) != 0:
+                tmp = []
+                for sub in subs:
+                    tmp.extend(sub.conjuncts)
+                subs.extend(tmp)
+                return subs
+            elif head.head != head:
+                continue
+            else:
+                break
+        elif head.pos_ == "NOUN" or head.pos_ == "PRON" or head.pos_ == "PROPN":
+            return [head]
+    return []
+def obj_deptree(verb):
+    head = verb.head
+    while head.head != head:
+        head = head.head
+        if head.pos_ == "VERB":
+            subs = [t for t in head.rights if t.dep_ in deptag["obj"]]
+            if len(subs) != 0:
+                tmp = []
+                for sub in subs:
+                    tmp.extend(sub.conjuncts)
+                subs.extend(tmp)
+                return subs
+            elif head.head != head:
+                continue
+            else:
+                break
+        elif head.pos_ == "NOUN" or head.pos_ == "PRON" or head.pos_ == "PROPN":
+            return [head]
+    return []
 def get_sth(sen,label):
     list=[]
     sen=nlp(sen)
@@ -32,6 +71,8 @@ def get_subj(sen,head_idx,tag):
     for token in sen[0:head_idx]:
         if token.dep_ in deptag[tag] and token.pos_ != "DET" and not token.is_punct and token.text not in s:
             sublist.append(token)
+    if(len(sublist)==0):
+        subj_deptree(sen[head_idx])
     return sublist
 
 def get_obj(sen,head_idx,tag):
@@ -39,15 +80,24 @@ def get_obj(sen,head_idx,tag):
     objlist = []
     for token in sen[head_idx+1:]:
         if token.dep_ in deptag[tag] and not token.is_punct and token.text not in o:
-            subtree=list(token.subtree)
+            '''subtree=list(token.subtree)
             start=subtree[0].i
             end=subtree[-1].i+1
-            return sen[start:end]
+            return sen[start:end]'''
+            objlist.append(token)
+        if token.pos_ == "ADP" and token.dep_ == "prep":
+            objlist.extend([t for t in sen[head_idx+1:] if token.dep_ in deptag[tag] or (t.pos_ == "PRON" and t.lower == "me")])
+        if(len(objlist)==0):
+            obj_deptree(sen[head_idx])
+    return objlist
 
 def verb_idxs(sen):
     sen=nlp(sen)
-    idxs=[(i,token) for i,token in enumerate(sen)if token.pos_=='VERB']
+    idxs=[(i,token) for i,token in enumerate(sen)if token.pos_=='VERB' and token.dep_ != "aux" and token.dep_ != 'auxpass']
+    if len(idxs) == 0:
+        idxs=[(i,token) for i,token in enumerate(sen) if token.pos_ == "VERB" or token.pos_ == "AUX"]
     return idxs
+
 
 def word_in_sen(s,sen):
     for word in s:
@@ -73,7 +123,7 @@ for row in range(len(data)):
         subj=get_subj(sen,idx[0],'subj')
         obj=get_obj(sen,idx[0],'obj')
         verb = sen[idx[0]]
-        if len(subj)!=0:
+        if subj is not None:
             for su in subj:
                 s.append(su.text)
         if obj is not None:
@@ -98,14 +148,16 @@ for row in range(len(data)):
     predict=int(a and b and c)
     if data["answ"][row] == predict:
         win+=1
-    else:
+    '''else:
         print("S:", s,'\n', str(data["主詞"][row]))
-        print("++++++++++++++++++++++++++++++++++++++++")
+        print("++++++++++++++++++++++++++++++++++++++++", a)
     
         print("V:", v,'\n', str(data["動詞"][row]))
-        print("++++++++++++++++++++++++++++++++++++++++")
+        print("++++++++++++++++++++++++++++++++++++++++", b)
         print("O:", o,'\n', str(data["受詞"][row]))
-        print("++++++++++++++++++++++++++++++++++++++++")
+        print("++++++++++++++++++++++++++++++++++++++++", c)
+        print(data["answ"][row])
+        print("==========================================================")'''
     #ans.loc[row] = [row,predict]
 
 #ans.to_csv("predict.csv",index=False)
