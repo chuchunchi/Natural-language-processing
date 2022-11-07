@@ -10,8 +10,8 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 '''
-data_path="dataset.csv"
-data=pd.read_csv(data_path,header=None,names=['編號','句子','主詞','動詞','受詞'])
+data_path="example_with_answer.csv"
+data=pd.read_csv(data_path,header=None,names=['answ','句子','主詞','動詞','受詞'])
 
 deptag = {"subj":["nsubj", "nsubjpass", "csubj",
             "csubjpass", "agent", "expl"], "obj": ["dobj", "dative", "attr", "oprd"]}
@@ -84,24 +84,32 @@ for row in range(len(data)):
 # Maybe consider the other Part-of-Speech?
 # Ex:
     
-    if get_sth(sen,'AUX')!=None:
+    '''if get_sth(sen,'AUX')!=None:
         for word in get_sth(sen,'AUX'):
             o.append(word)
     if get_sth(sen,'attr')!=None:
         for word in get_sth(sen,'attr'):
-            o.append(word)
+            o.append(word)'''
     
 
     a = word_in_sen(s, str(data["主詞"][row]))
     b = word_in_sen(v, str(data["動詞"][row]))
     c = word_in_sen(o, str(data["受詞"][row]))
     predict=int(a and b and c)
+    if data["answ"][row] == predict:
+        win+=1
+    else:
+        print("S:", s,'\n', str(data["主詞"][row]))
+        print("++++++++++++++++++++++++++++++++++++++++")
+    
+        print("V:", v,'\n', str(data["動詞"][row]))
+        print("++++++++++++++++++++++++++++++++++++++++")
+        print("O:", o,'\n', str(data["受詞"][row]))
+        print("++++++++++++++++++++++++++++++++++++++++")
+    #ans.loc[row] = [row,predict]
 
-
-    ans.loc[row] = [row,predict]
-
-ans.to_csv("predict.csv",index=False)
-
+#ans.to_csv("predict.csv",index=False)
+print(win)
 
 
 
