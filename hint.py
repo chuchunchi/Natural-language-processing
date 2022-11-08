@@ -70,8 +70,8 @@ def get_subj(sen,head_idx,tag):
     for token in sen[0:head_idx]:
         if token.dep_ in deptag[tag] and token.pos_ != "DET" and not token.is_punct and token.text not in s:
             sublist.append(token)
-    if(len(sublist)==0):
-        subj_deptree(sen[head_idx])
+    #if(len(sublist)==0):
+    sublist.extend(subj_deptree(sen[head_idx]))
     return sublist
 
 def get_obj(sen,head_idx,tag):
@@ -84,17 +84,13 @@ def get_obj(sen,head_idx,tag):
             end=subtree[-1].i+1
             return sen[start:end]'''
             objlist.append(token)
-        if token.pos_ == "ADP" and token.dep_ == "prep":
-            objlist.extend([t for t in sen[head_idx+1:] if token.dep_ in deptag[tag] or (t.pos_ == "PRON" and t.lower == "me")])
-        if(len(objlist)==0):
-            obj_deptree(sen[head_idx])
+    #if(len(objlist)==0):
+    objlist.extend(obj_deptree(sen[head_idx]))
     return objlist
 
 def verb_idxs(sen):
     sen=nlp(sen)
-    idxs=[(i,token) for i,token in enumerate(sen)if token.pos_=='VERB' and token.dep_ != "aux" and token.dep_ != 'auxpass']
-    if len(idxs) == 0:
-        idxs=[(i,token) for i,token in enumerate(sen) if token.pos_ == "VERB" or token.pos_ == "AUX"]
+    idxs=[(i,token) for i,token in enumerate(sen) if token.pos_ == "VERB" or token.pos_ == "AUX"]
     return idxs
 
 
